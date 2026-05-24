@@ -186,7 +186,7 @@ async function ladeMitarbeiter(){
     const {data,error}=await db.from("employees")
       .select("name,vorname,archived,is_manager,standort,pin")
       .eq("archived",false)
-      .eq("standort",STANDORT);   // nur Personal dieses Standorts
+      .in("standort",[STANDORT,"both"]);   // dieser Standort + standortübergreifende (Manager)
     if(error) throw error;
     // Anzeige: "Vorname Name" (z. B. "Pyong-chin Han"); alphabetisch nach Vorname
     MITARBEITER=(data||[])
