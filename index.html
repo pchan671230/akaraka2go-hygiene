@@ -9,7 +9,7 @@
   :root{
     --bg:#f4f1ea; --karte:#fff; --tinte:#2a2724;
     --rot:#b3261e; --rotBg:#fbe9e7; --gruen:#1f6b3b; --gruenBg:#e8f3ec;
-    --linie:#e3ddd2; --akzent:#7a1f1f; --grau:#8a8378;
+    --linie:#e3ddd2; --akzent:#15503f; --grau:#8a8378;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;background:var(--bg);color:var(--tinte);
@@ -282,7 +282,7 @@ function exportCSV(){
 function render(){
   const sch=schicht();
   const heute=new Date().toLocaleDateString("de-CH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  let h=`<header><div class="brand">AKARAKA<span style="font-size:0.5em;letter-spacing:2px;"> TO GO</span></div><div class="sub">Hygiene-Kontrolle</div>
+  let h=`<header><div class="brand">AKA2GO</div><div class="sub">Hygiene-Kontrolle</div>
     <div class="datum">${heute} · <span class="syncDot ${state.online?'':'off'}"></span>${state.online?'verbunden':'offline'}</div></header>`;
 
   // Schicht
