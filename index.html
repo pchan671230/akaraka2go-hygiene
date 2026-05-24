@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AKARAKA TO GO · Hygiene-Kontrolle</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#f4f1ea; --karte:#fff; --tinte:#2a2724;
+    --rot:#b3261e; --rotBg:#fbe9e7; --gruen:#1f6b3b; --gruenBg:#e8f3ec;
+    --linie:#e3ddd2; --akzent:#7a1f1f; --grau:#8a8378;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--tinte);
+    font-family:Georgia,'Times New Roman',serif;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:50px;}
+  header{padding:22px 20px 16px;text-align:center;border-bottom:3px double var(--akzent);}
+  .brand{font-size:30px;font-weight:700;letter-spacing:4px;color:var(--akzent);}
+  .sub{font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-top:2px;color:var(--grau);}
+  .datum{font-size:13px;margin-top:8px;font-style:italic;color:#6b655c;}
+  .block{padding:14px 16px 4px;}
+  .label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--grau);}
+  .schichtRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .schichtBtn{padding:12px 10px;border-radius:12px;border:1px solid var(--linie);
+    background:var(--karte);font-family:inherit;cursor:pointer;text-align:left;
+    display:flex;flex-direction:column;gap:2px;color:var(--tinte);}
+  .schichtBtn.on{background:var(--akzent);color:#fff;border-color:var(--akzent);}
+  .schichtLabel{font-size:15px;font-weight:700;}
+  .schichtZeit{font-size:11px;opacity:.7;}
+  .personRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .personBtn{flex:1 0 28%;padding:9px 6px;border-radius:10px;border:1px solid var(--linie);
+    background:var(--karte);font-family:inherit;font-size:14px;cursor:pointer;color:var(--tinte);text-align:center;}
+  .personBtn.on{background:var(--akzent);color:#fff;border-color:var(--akzent);}
+  .tabs{display:flex;gap:6px;padding:12px 12px 0;}
+  .tab{flex:1;padding:12px 4px;border:none;border-radius:10px 10px 0 0;background:transparent;
+    font-family:inherit;font-size:14px;cursor:pointer;color:var(--grau);
+    display:flex;justify-content:center;align-items:center;gap:8px;}
+  .tab.on{background:var(--karte);color:var(--tinte);font-weight:700;box-shadow:0 -2px 0 var(--akzent) inset;}
+  .tabBadge{font-size:12px;padding:1px 8px;border-radius:20px;background:#efe9dd;color:#6b655c;}
+  .body{background:var(--karte);padding:16px 14px 24px;min-height:300px;}
+  .schichtTitel{font-size:20px;font-weight:700;color:var(--akzent);margin-bottom:6px;}
+  .hint{font-size:13px;line-height:1.5;color:#6b655c;}
+  .gruppeKopf{font-size:15px;font-weight:700;color:var(--akzent);padding:0 2px 8px;
+    margin:18px 0 10px;border-bottom:2px solid var(--linie);text-transform:uppercase;letter-spacing:1px;
+    display:flex;justify-content:space-between;align-items:center;}
+  .gruppeZahl{font-size:13px;color:var(--grau);font-weight:400;}
+  .card{border:1px solid var(--linie);border-radius:12px;padding:14px;margin-bottom:12px;background:#fcfbf8;}
+  .card.ok{border:1px solid var(--gruen);background:var(--gruenBg);}
+  .card.warn{border:2px solid var(--rot);background:var(--rotBg);}
+  .cardTop{display:flex;justify-content:space-between;align-items:center;}
+  .geraetId{font-size:18px;font-weight:700;letter-spacing:1px;}
+  .soll{font-size:13px;color:var(--grau);margin-top:2px;}
+  .inputWrap{display:flex;align-items:center;gap:4px;}
+  .tempInput{width:80px;padding:10px 8px;font-size:26px;text-align:center;
+    border:1px solid var(--linie);border-radius:10px;font-family:inherit;background:#fff;}
+  .grad{font-size:18px;color:#6b655c;}
+  .vzBtn{width:40px;height:46px;border-radius:10px;border:1px solid var(--linie);background:#fff;
+    font-family:inherit;font-size:24px;font-weight:700;cursor:pointer;color:var(--tinte);flex-shrink:0;}
+  .vzBtn.minusOn{background:var(--akzent);color:#fff;border-color:var(--akzent);}
+  .editBtn{margin-left:8px;width:34px;height:34px;border-radius:8px;border:1px solid var(--linie);
+    background:#fff;font-size:16px;cursor:pointer;color:var(--grau);flex-shrink:0;}
+  .editBtn:hover{border-color:var(--akzent);color:var(--akzent);}
+  .statusZeile{margin-top:8px;font-size:14px;}
+  .okText{color:var(--gruen);font-weight:600;}
+  .warnText{color:var(--rot);font-weight:700;}
+  .leerText{color:#aaa39a;font-style:italic;}
+  .massnahmeInput{width:100%;margin-top:10px;padding:12px;font-size:15px;
+    border:1px solid var(--rot);border-radius:10px;font-family:inherit;background:#fff;}
+  .cleanRow{width:100%;display:flex;align-items:center;gap:14px;padding:16px 14px;
+    margin-bottom:10px;border-radius:12px;border:1px solid var(--linie);background:#fcfbf8;
+    font-family:inherit;font-size:17px;cursor:pointer;text-align:left;color:var(--tinte);}
+  .cleanRow.on{background:var(--gruenBg);border-color:var(--gruen);}
+  .box{width:30px;height:30px;border-radius:8px;border:2px solid var(--linie);
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;
+    flex-shrink:0;background:#fff;}
+  .box.on{background:var(--gruen);border-color:var(--gruen);}
+  .cleanText{flex:1;}
+  .cleanWer{font-size:12px;color:var(--grau);font-style:italic;}
+  textarea{width:100%;min-height:70px;padding:12px;font-size:15px;border:1px solid var(--linie);
+    border-radius:10px;font-family:inherit;background:#fcfbf8;resize:vertical;}
+  .saveBtn{width:100%;margin-top:18px;padding:18px;font-size:18px;font-weight:700;border:none;
+    border-radius:14px;background:var(--akzent);color:#fff;font-family:inherit;cursor:pointer;letter-spacing:.5px;}
+  .saveBtn:disabled{opacity:.5;}
+  .logCard{border:1px solid var(--linie);border-radius:12px;padding:14px;margin-bottom:12px;background:#fcfbf8;}
+  .logHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .logMeta{font-size:13px;color:var(--grau);}
+  .logGrid{display:flex;flex-wrap:wrap;gap:6px;}
+  .logChip{font-size:13px;padding:4px 8px;border-radius:8px;}
+  .dateRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .dateRow input{padding:8px;border:1px solid var(--linie);border-radius:8px;font-family:inherit;font-size:14px;}
+  .btnGhost{padding:8px 14px;border:1px solid var(--akzent);background:#fff;color:var(--akzent);
+    border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tinte);
+    color:#fff;padding:12px 20px;border-radius:10px;font-size:15px;z-index:99;opacity:0;
+    transition:opacity .3s;pointer-events:none;max-width:90%;}
+  .toast.show{opacity:1;}
+  .foot{text-align:center;font-size:12px;color:#aaa39a;padding:20px 10px 0;font-style:italic;}
+  .modalBg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;}
+  .modal{position:fixed;z-index:51;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:88%;max-width:360px;background:var(--karte);border-radius:16px;padding:22px 20px;
+    box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .modalTitel{font-size:20px;font-weight:700;color:var(--akzent);}
+  .modalSoll{font-size:13px;color:var(--grau);margin:4px 0 16px;}
+  .modalLabel{display:block;font-size:13px;color:var(--grau);margin:12px 0 4px;text-transform:uppercase;letter-spacing:1px;}
+  .modalInput{width:100%;padding:13px;font-size:17px;border:1px solid var(--linie);border-radius:10px;
+    font-family:inherit;box-sizing:border-box;background:#fcfbf8;}
+  .modalBtns{display:flex;gap:10px;margin-top:20px;}
+  .modalCancel{flex:1;padding:14px;border:1px solid var(--linie);background:#fff;border-radius:10px;
+    font-family:inherit;font-size:16px;cursor:pointer;color:var(--tinte);}
+  .modalOk{flex:1;padding:14px;border:none;background:var(--akzent);color:#fff;border-radius:10px;
+    font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;}
+  .syncDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gruen);margin-right:6px;}
+  .syncDot.off{background:var(--rot);}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  AKARAKA · Hygiene-Kontrolle (mit Supabase)
+// ============================================================
+const SUPABASE_URL = "https://brnhxzpvrfglbidxircy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Og6PFe57FIzFUKtfODqyJQ_PmqO29Nf";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Standort dieses Apps: 'akaraka' (Hauptstandort) | 'aka2go' (To-Go)
+// → Bei der To-Go-Version nur diese eine Zeile auf 'aka2go' ändern.
+const STANDORT = "aka2go";
+
+// --- Stammdaten ---
+const GERAETE = [
+  {id:"KS1",     label:"Kühlschrank 1",        typ:"kuehl", min:1, max:5},
+  {id:"KS2",     label:"Kühlsch. Waschraum",   typ:"kuehl", min:1, max:5},
+  {id:"KS3",     label:"Kühlsch. Truhe",       typ:"kuehl", min:1, max:5},
+  {id:"KS4",     label:"Kühlschrank 4",        typ:"kuehl", min:1, max:5},
+  {id:"KOMBI-KS",label:"Kombi · Kühlteil",     typ:"kuehl", min:1, max:5},
+  {id:"TK1",     label:"Tiefkühler 2",         typ:"tk",    min:-40, max:-18},
+  {id:"KOMBI-TK",label:"Kombi · Tiefkühlteil", typ:"tk",    min:-40, max:-18},
+  {id:"TK3",     label:"Tiefk. im Keller",     typ:"tk",    min:-40, max:-18},
+];
+const REINIGUNG=[
+  {id:"r1",text:"Bodenreinigung"},
+  {id:"r2",text:"Fenster & Glastüren"},
+  {id:"r3",text:"Küchenfläche desinfiziert"},
+  {id:"r4",text:"Kühlschrank gereinigt"},
+  {id:"r5",text:"Sonstiges"},
+];
+const ABSCHLUSS=[
+  {id:"a1",text:"Gas abgestellt"},{id:"a2",text:"Geräte / Strom ausgeschaltet"},
+  {id:"a3",text:"Fenster geschlossen"},{id:"a4",text:"Türen abgeschlossen"},
+];
+const SCHICHTEN=[
+  {id:"Öffnung",zeit:"Tagesbeginn",blocks:[
+    {titel:"Temperaturkontrolle",art:"temp"},
+    {titel:"Reinigung",art:"check",items:REINIGUNG}]},
+  {id:"Schluss",zeit:"Tagesende",blocks:[
+    {titel:"Reinigung",art:"check",items:REINIGUNG},
+    {titel:"Sicherheit / Abschluss",art:"check",items:ABSCHLUSS}]},
+];
+// Mitarbeiter werden aus der Supabase-Tabelle 'employees' geladen (siehe ladeMitarbeiter)
+let MITARBEITER=[];
+let MANAGER_PINS=[]; // PINs der Manager – für das Bearbeiten gesperrter Einträge
+
+// --- Zustand ---
+let state={
+  schicht:SCHICHTEN[0].id, person:"", tab:"aufgaben",
+  temps:{}, clean:{}, bemerkung:"", edit:null,
+  heuteTemps:[], heuteClean:[],  // bereits heute gespeicherte (aus DB)
+  logVon:isoDaysAgo(7), logBis:isoToday(), logData:{temps:[],clean:[]}, online:true,
+};
+
+function isoToday(){return new Date().toISOString().slice(0,10);}
+function isoDaysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function sollText(g){return g.typ==="tk"?"≤ −18 °C":`+${g.min} bis +${g.max} °C`;}
+function istOk(g,w){if(w===""||w==null||isNaN(w))return null;const n=+w;return g.typ==="tk"?n<=g.max:(n>=g.min&&n<=g.max);}
+function schicht(){return SCHICHTEN.find(s=>s.id===state.schicht);}
+function hatTemp(){return schicht().blocks.some(b=>b.art==="temp");}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+
+// --- DB: Mitarbeiter aus 'employees' laden (nur aktive, nicht archivierte) ---
+async function ladeMitarbeiter(){
+  try{
+    const {data,error}=await db.from("employees")
+      .select("name,vorname,archived,is_manager,standort,pin")
+      .eq("archived",false)
+      .eq("standort",STANDORT);   // nur Personal dieses Standorts
+    if(error) throw error;
+    // Anzeige: "Vorname Name" (z. B. "Pyong-chin Han"); alphabetisch nach Vorname
+    MITARBEITER=(data||[])
+      .map(e=>`${(e.vorname||"").trim()} ${(e.name||"").trim()}`.trim())
+      .filter(n=>n.length>0)
+      .sort((a,b)=>a.localeCompare(b,"de"));
+    // PINs der Manager merken (für Bearbeiten gesperrter Einträge)
+    MANAGER_PINS=(data||[])
+      .filter(e=>e.is_manager===true && e.pin)
+      .map(e=>String(e.pin).trim());
+    state.online=true;
+  }catch(e){
+    state.online=false;
+    MITARBEITER=[]; // bei Fehler leer – Hinweis wird im Render angezeigt
+  }
+  render();
+}
+
+// --- DB: heute schon erledigte Aufgaben laden (für Teilen/Aufteilen) ---
+async function ladeHeute(){
+  try{
+    const heute=isoToday();
+    const {data:t}=await db.from("hygiene_temperatur").select("*").eq("datum",heute).eq("standort",STANDORT);
+    const {data:c}=await db.from("hygiene_reinigung").select("*").eq("datum",heute).eq("standort",STANDORT);
+    state.heuteTemps=t||[]; state.heuteClean=c||[]; state.online=true;
+  }catch(e){state.online=false;}
+  render();
+}
+
+// --- DB: Verlauf laden (Zeitraum) ---
+async function ladeVerlauf(){
+  try{
+    const {data:t}=await db.from("hygiene_temperatur").select("*")
+      .eq("standort",STANDORT)
+      .gte("datum",state.logVon).lte("datum",state.logBis).order("erstellt_am",{ascending:false});
+    const {data:c}=await db.from("hygiene_reinigung").select("*")
+      .eq("standort",STANDORT)
+      .gte("datum",state.logVon).lte("datum",state.logBis).order("erstellt_am",{ascending:false});
+    state.logData={temps:t||[],clean:c||[]}; state.online=true;
+  }catch(e){state.online=false; toast("Keine Verbindung");}
+  render();
+}
+
+// --- Speichern (Teil-Speichern erlaubt: nur Eingegebenes wird gespeichert) ---
+async function speichern(){
+  const sch=schicht();
+  if(!state.person){toast("Bitte zuerst Mitarbeiter:in auswählen");return;}
+  // Nur tatsächlich eingegebene Temperaturen berücksichtigen (Teil-Eingabe ok)
+  const eingegebene = hatTemp()
+    ? GERAETE.filter(g=>state.temps[g.id]?.wert!=null && state.temps[g.id]?.wert!=="")
+    : [];
+  // Abweichung: Korrekturmassnahme ist optional (kann, muss aber nicht eingegeben werden)
+  // Gibt es überhaupt etwas Neues zu speichern?
+  const neueClean = sch.blocks.filter(b=>b.art==="check").flatMap(b=>b.items)
+    .filter(i=>state.clean[i.id] && !istHeuteCleanDa(sch.id,i.text));
+  if(eingegebene.length===0 && neueClean.length===0){
+    toast("Nichts Neues zum Speichern");return;
+  }
+  const heute=isoToday();
+  try{
+    // Temperaturen (nur neu eingegebene)
+    const tRows=eingegebene
+      .map(g=>({datum:heute,schicht:sch.id,mitarbeiter:state.person,geraet:g.id,
+        wert:+state.temps[g.id].wert, im_soll:istOk(g,state.temps[g.id].wert),
+        massnahme:state.temps[g.id].massnahme||null, standort:STANDORT}));
+    if(tRows.length) {const {error}=await db.from("hygiene_temperatur").insert(tRows); if(error)throw error;}
+    // Reinigung (alle angehakten dieser Schicht, die noch nicht in DB sind)
+    const cRows=neueClean
+      .map(i=>({datum:heute,schicht:sch.id,mitarbeiter:state.person,aufgabe:i.text,
+        erledigt:true, bemerkung:state.bemerkung.trim()||null, standort:STANDORT}));
+    if(cRows.length){const {error}=await db.from("hygiene_reinigung").insert(cRows); if(error)throw error;}
+    state.temps={}; state.clean={}; state.bemerkung="";
+    toast("Gespeichert ✓ ("+(tRows.length+cRows.length)+" Einträge)");
+    await ladeHeute();
+  }catch(e){toast("Fehler beim Speichern – Verbindung?");state.online=false;render();}
+}
+function istHeuteTempDa(geraet){return state.heuteTemps.some(r=>r.geraet===geraet && r.schicht===state.schicht);}
+function istHeuteCleanDa(sch,text){return state.heuteClean.some(r=>r.schicht===sch && r.aufgabe===text);}
+function werHatGemacht(sch,text){const r=state.heuteClean.find(x=>x.schicht===sch&&x.aufgabe===text);return r?r.mitarbeiter:null;}
+
+// --- CSV Export ---
+function exportCSV(){
+  const rows=[["Typ","Datum","Schicht","Mitarbeiter","Detail","Wert/Erledigt","im Soll","Massnahme/Bemerkung"]];
+  state.logData.temps.forEach(r=>rows.push(["Temperatur",r.datum,r.schicht,r.mitarbeiter,r.geraet,r.wert,r.im_soll?"ja":"NEIN",r.massnahme||""]));
+  state.logData.clean.forEach(r=>rows.push(["Reinigung",r.datum,r.schicht,r.mitarbeiter,r.aufgabe,r.erledigt?"erledigt":"offen","",r.bemerkung||""]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`akaraka-hygiene_${state.logVon}_${state.logBis}.csv`;a.click();
+}
+
+// ===================== RENDER =====================
+function render(){
+  const sch=schicht();
+  const heute=new Date().toLocaleDateString("de-CH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  let h=`<header><div class="brand">AKARAKA<span style="font-size:0.5em;letter-spacing:2px;"> TO GO</span></div><div class="sub">Hygiene-Kontrolle</div>
+    <div class="datum">${heute} · <span class="syncDot ${state.online?'':'off'}"></span>${state.online?'verbunden':'offline'}</div></header>`;
+
+  // Schicht
+  h+=`<div class="block"><span class="label">Schicht</span><div class="schichtRow">`;
+  SCHICHTEN.forEach(s=>{h+=`<button class="schichtBtn ${s.id===state.schicht?'on':''}" onclick="setSchicht('${s.id}')">
+    <span class="schichtLabel">${s.id}</span><span class="schichtZeit">${s.zeit}</span></button>`;});
+  h+=`</div></div>`;
+
+  // Person
+  h+=`<div class="block"><span class="label">Mitarbeiter:in</span><div class="personRow">`;
+  if(MITARBEITER.length===0){
+    h+=`<span class="hint" style="padding:8px 2px">Mitarbeiter werden geladen … (oder keine Verbindung)</span>`;
+  }else{
+    MITARBEITER.forEach(m=>{h+=`<button class="personBtn ${m===state.person?'on':''}" onclick="setPerson(\`${m}\`)">${m}</button>`;});
+  }
+  h+=`</div></div>`;
+
+  // Tabs
+  const pct=fortschritt();
+  h+=`<div class="tabs">
+    <button class="tab ${state.tab==='aufgaben'?'on':''}" onclick="setTab('aufgaben')">Aufgaben <span class="tabBadge">${pct}%</span></button>
+    <button class="tab ${state.tab==='log'?'on':''}" onclick="setTab('log')">Verlauf</button></div>`;
+
+  h+=`<div class="body">`;
+  if(state.tab==="aufgaben"){
+    h+=`<div class="schichtTitel">${sch.id}</div>`;
+    h+=`<p class="hint">Bereits heute erledigte Punkte sind grün markiert – ihr könnt euch die Aufgaben aufteilen.</p>`;
+    sch.blocks.forEach(b=>{
+      if(b.art==="temp"){
+        h+=`<div class="gruppeKopf">${b.titel}</div>`;
+        GERAETE.forEach(g=>{
+          const schonDa=istHeuteTempDa(g.id);
+          const r0=schonDa?state.heuteTemps.find(x=>x.geraet===g.id&&x.schicht===state.schicht):null;
+          const e=state.temps[g.id]||{};
+          const ok=schonDa?(r0.im_soll===true):istOk(g,e.wert);
+          const cls=ok===true?"ok":ok===false?"warn":"";
+          h+=`<div class="card ${cls}"><div class="cardTop"><div>
+            <div class="geraetId">${g.id}</div><div class="soll">${g.label} · Soll: ${sollText(g)}</div></div>
+            <div class="inputWrap">`;
+          if(schonDa){const r=r0;
+            h+=`<span style="font-size:22px;font-weight:700">${r.wert}°</span>
+              <button class="editBtn" onclick="managerEdit(${r.id},'${g.id}',${r.wert})" title="Korrektur (nur Manager)">✎</button>`;
+          }else if(g.typ==="tk"){
+            // Tiefkühler: Vorzeichen-Umschalter (−/+), Eingabe als Betrag
+            const minus = e.minus!==false; // Standard: minus an (Tiefkühler ist immer Minusgrad)
+            h+=`<button class="vzBtn ${minus?'minusOn':''}" onclick="toggleVorzeichen('${g.id}')">${minus?'−':'+'}</button>
+              <input class="tempInput" type="number" inputmode="decimal" value="${e.betrag??''}"
+              oninput="setTempBetrag('${g.id}',this.value)" onchange="commitTemp()" placeholder="—"/><span class="grad">°C</span>`;
+          }else{
+            h+=`<input class="tempInput" type="number" inputmode="decimal" value="${e.wert??''}"
+              oninput="setTempWert('${g.id}',this.value)" onchange="commitTemp()" placeholder="—"/><span class="grad">°C</span>`;
+          }
+          h+=`</div></div><div class="statusZeile">`;
+          if(schonDa){const r=r0;
+            if(r.im_soll===false){h+=`<span class="warnText">⚠ Abweichung! – erfasst von ${r.mitarbeiter}</span>`;}
+            else{h+=`<span class="okText">✓ erfasst von ${r.mitarbeiter}</span>`;}
+            if(r.im_soll===false && r.massnahme){h+=`<div style="font-size:13px;color:#6b655c;margin-top:4px">↳ ${r.massnahme}</div>`;}
+          }
+          else if(ok===true)h+=`<span class="okText">✓ im Sollbereich</span>`;
+          else if(ok===false)h+=`<span class="warnText">⚠ Abweichung!</span>`;
+          else h+=`<span class="leerText">noch nicht gemessen</span>`;
+          h+=`</div>`;
+          if(!schonDa&&ok===false){h+=`<input class="massnahmeInput" type="text" value="${e.massnahme??''}"
+            oninput="setTempMass('${g.id}',this.value)" placeholder="Korrekturmassnahme (optional, z. B. Tür geprüft)"/>`;}
+          h+=`</div>`;
+        });
+      }else{
+        const erl=b.items.filter(i=>state.clean[i.id]||istHeuteCleanDa(sch.id,i.text)).length;
+        h+=`<div class="gruppeKopf">${b.titel}<span class="gruppeZahl">${erl}/${b.items.length}</span></div>`;
+        b.items.forEach(i=>{
+          const schonDa=istHeuteCleanDa(sch.id,i.text);
+          const an=schonDa||state.clean[i.id];
+          const wer=schonDa?werHatGemacht(sch.id,i.text):null;
+          h+=`<button class="cleanRow ${an?'on':''}" ${schonDa?'':''} onclick="toggleClean('${i.id}','${sch.id}',\`${i.text}\`)">
+            <span class="box ${an?'on':''}">${an?'✓':''}</span>
+            <span class="cleanText">${i.text}${wer?` <span class="cleanWer">– ${wer}</span>`:''}</span></button>`;
+        });
+      }
+    });
+    h+=`<div class="gruppeKopf">Bemerkungen</div>
+      <textarea oninput="state.bemerkung=this.value" placeholder="Besonderheiten? (z. B. Gerät defekt, Reklamation) – optional">${state.bemerkung}</textarea>`;
+    h+=`<button class="saveBtn" onclick="speichern()">${sch.id} speichern</button>`;
+  } else {
+    // Verlauf
+    h+=`<div class="dateRow">
+      <span class="label">Von</span><input type="date" value="${state.logVon}" onchange="state.logVon=this.value">
+      <span class="label">Bis</span><input type="date" value="${state.logBis}" onchange="state.logBis=this.value">
+      <button class="btnGhost" onclick="ladeVerlauf()">Anzeigen</button>
+      <button class="btnGhost" onclick="exportCSV()">CSV</button></div>`;
+    const byDay={};
+    state.logData.temps.forEach(r=>{(byDay[r.datum]=byDay[r.datum]||{temps:[],clean:[]}).temps.push(r);});
+    state.logData.clean.forEach(r=>{(byDay[r.datum]=byDay[r.datum]||{temps:[],clean:[]}).clean.push(r);});
+    const tage=Object.keys(byDay).sort().reverse();
+    if(tage.length===0)h+=`<p class="hint">Keine Einträge im gewählten Zeitraum. Wähle einen Zeitraum und tippe „Anzeigen".</p>`;
+    tage.forEach(tag=>{
+      const d=byDay[tag];
+      const warns=d.temps.filter(r=>!r.im_soll).length;
+      h+=`<div class="logCard"><div class="logHead"><strong>${tag}</strong>
+        <span class="logMeta">${d.temps.length} Temp · ${d.clean.length} Reinig${warns?` · <span class="warnText">${warns} ⚠</span>`:''}</span></div>`;
+      if(d.temps.length){h+=`<div class="logGrid">`;
+        d.temps.forEach(r=>{h+=`<span class="logChip" style="background:${r.im_soll?'var(--gruenBg)':'var(--rotBg)'};color:${r.im_soll?'var(--gruen)':'var(--rot)'}">${r.geraet}: ${r.wert}°${r.im_soll?'':' ⚠'}</span>`;});
+        h+=`</div>`;}
+      const bem=d.clean.find(r=>r.bemerkung);
+      if(bem)h+=`<div class="logMeta" style="margin-top:8px;font-style:italic">📝 ${bem.bemerkung}</div>`;
+      h+=`</div>`;
+    });
+  }
+  h+=`</div><div class="foot">AKARAKA TO GO Hygiene-Kontrolle · Daten in Supabase gespeichert</div>`;
+
+  // --- Manager-Korrektur-Fenster (Modal) ---
+  if(state.edit){
+    const ed=state.edit;
+    const g=GERAETE.find(x=>x.id===ed.geraet);
+    const wertNum=Number(ed.wert);
+    const istAbw = ed.wert!=="" && !isNaN(wertNum) && istOk(g,wertNum)===false;
+    h+=`<div class="modalBg" onclick="editAbbrechen()"></div>
+      <div class="modal">
+        <div class="modalTitel">Korrektur · ${ed.geraet}</div>
+        <div class="modalSoll">Soll: ${sollText(g)} · gespeichert: ${ed.altWert}°C</div>
+        <label class="modalLabel">Manager-PIN</label>
+        <input class="modalInput" type="password" inputmode="numeric" value="${ed.pin}"
+          oninput="editFeld('pin',this.value)" placeholder="PIN" autocomplete="off"/>
+        <label class="modalLabel">Neue Temperatur (°C)</label>
+        <input class="modalInput" type="number" inputmode="decimal" value="${ed.wert}"
+          oninput="editFeld('wert',this.value)" onchange="editRefresh()" placeholder="z. B. -18"/>`;
+    if(istAbw){
+      h+=`<div class="warnText" style="margin:8px 0 4px">⚠ ${wertNum}°C ist eine Abweichung</div>
+        <input class="modalInput" type="text" value="${ed.massnahme}"
+          oninput="editFeld('massnahme',this.value)" placeholder="Korrekturmassnahme (Pflicht)"/>`;
+    }
+    h+=`<div class="modalBtns">
+        <button class="modalCancel" onclick="editAbbrechen()">Abbrechen</button>
+        <button class="modalOk" onclick="editSpeichern()">Speichern</button>
+      </div></div>`;
+  }
+
+  document.getElementById("app").innerHTML=h;
+}
+function fortschritt(){
+  const sch=schicht();
+  const items=sch.blocks.filter(b=>b.art==="check").flatMap(b=>b.items);
+  let done=items.filter(i=>state.clean[i.id]||istHeuteCleanDa(sch.id,i.text)).length;
+  let total=items.length;
+  if(hatTemp()){total+=GERAETE.length;
+    done+=GERAETE.filter(g=>istHeuteTempDa(g.id)||istOk(g,state.temps[g.id]?.wert)!==null).length;}
+  return total?Math.round(done/total*100):0;
+}
+
+// --- Handlers ---
+window.setSchicht=id=>{state.schicht=id;state.tab="aufgaben";render();};
+window.setPerson=m=>{state.person=m;render();};
+window.setTab=t=>{state.tab=t;if(t==="log")ladeVerlauf();else render();};
+// Eingabe (oninput): nur Wert merken, NICHT neu rendern → Cursor bleibt im Feld
+window.setTempWert=(id,v)=>{state.temps[id]={...state.temps[id],wert:v};};
+// Tiefkühler: Betrag eingeben (oninput) – nur merken, kein render
+window.setTempBetrag=(id,v)=>{
+  const cur=state.temps[id]||{};
+  const minus=cur.minus!==false;
+  const betrag=v;
+  const wert = (betrag===""||betrag==null) ? "" : (minus? -Math.abs(+betrag) : Math.abs(+betrag));
+  state.temps[id]={...cur,betrag,minus,wert:wert===""?"":String(wert)};
+};
+// Eingabe abgeschlossen (Feld verlassen): jetzt neu rendern → Farbe/Status aktualisieren
+window.commitTemp=()=>{render();};
+window.toggleVorzeichen=(id)=>{
+  const cur=state.temps[id]||{};
+  const minus=!(cur.minus!==false); // umschalten
+  const betrag=cur.betrag;
+  const wert = (betrag===""||betrag==null) ? "" : (minus? -Math.abs(+betrag) : Math.abs(+betrag));
+  state.temps[id]={...cur,minus,betrag,wert:wert===""?"":String(wert)};
+  render();
+};
+window.setTempMass=(id,v)=>{state.temps[id]={...state.temps[id],massnahme:v};};
+// Manager-Korrektur: öffnet ein In-App-Fenster (funktioniert auch auf iPhone)
+window.managerEdit=(rowId,geraet,altWert)=>{
+  state.edit={rowId,geraet,altWert,pin:"",wert:String(altWert),massnahme:""};
+  render();
+};
+window.editFeld=(feld,v)=>{ if(state.edit) state.edit[feld]=v; };
+window.editRefresh=()=>{ if(state.edit) render(); }; // nach Temperatur-Eingabe: Massnahme-Feld ein-/ausblenden
+window.editAbbrechen=()=>{ state.edit=null; render(); };
+window.editSpeichern=async()=>{
+  const ed=state.edit; if(!ed) return;
+  if(!MANAGER_PINS.includes(String(ed.pin).trim())){toast("Falsche PIN – keine Berechtigung");return;}
+  const wert=Number(ed.wert);
+  if(ed.wert===""||isNaN(wert)){toast("Ungültige Zahl");return;}
+  const g=GERAETE.find(x=>x.id===ed.geraet);
+  const ok=istOk(g,wert);
+  let mass=ed.massnahme.trim()||null;
+  // Beim Korrigieren: bei Abweichung ist eine Korrekturmassnahme Pflicht
+  if(ok===false && !mass){toast("Bei Abweichung bitte Korrekturmassnahme eingeben");return;}
+  try{
+    const {error}=await db.from("hygiene_temperatur")
+      .update({wert:wert, im_soll:ok, massnahme:mass})
+      .eq("id",ed.rowId);
+    if(error) throw error;
+    state.edit=null;
+    toast("Korrektur gespeichert ✓");
+    await ladeHeute();
+  }catch(e){toast("Fehler bei der Korrektur");}
+};
+window.toggleClean=(id,sch,text)=>{if(istHeuteCleanDa(sch,text))return;state.clean[id]=!state.clean[id];render();};
+window.speichern=speichern;window.ladeVerlauf=ladeVerlauf;window.exportCSV=exportCSV;window.state=state;
+
+// Start
+render();
+ladeMitarbeiter();
+ladeHeute();
+</script>
+</body>
+</html>
