@@ -162,7 +162,6 @@ const SCHICHTEN=[
 ];
 // Mitarbeiter werden aus der Supabase-Tabelle 'employees' geladen (siehe ladeMitarbeiter)
 let MITARBEITER=[];
-let MANAGER_PINS=[]; // PINs der Manager – für das Bearbeiten gesperrter Einträge
 
 // --- Zustand ---
 let state={
@@ -184,7 +183,7 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
 async function ladeMitarbeiter(){
   try{
     const {data,error}=await db.from("employees")
-      .select("name,vorname,archived,is_manager,standort,pin")
+      .select("name,vorname,archived,is_manager,standort")
       .eq("archived",false)
       .in("standort",[STANDORT,"both"]);   // dieser Standort + standortübergreifende (Manager)
     if(error) throw error;
@@ -193,10 +192,6 @@ async function ladeMitarbeiter(){
       .map(e=>`${(e.vorname||"").trim()} ${(e.name||"").trim()}`.trim())
       .filter(n=>n.length>0)
       .sort((a,b)=>a.localeCompare(b,"de"));
-    // PINs der Manager merken (für Bearbeiten gesperrter Einträge)
-    MANAGER_PINS=(data||[])
-      .filter(e=>e.is_manager===true && e.pin)
-      .map(e=>String(e.pin).trim());
     state.online=true;
   }catch(e){
     state.online=false;
@@ -466,7 +461,9 @@ window.editRefresh=()=>{ if(state.edit) render(); }; // nach Temperatur-Eingabe:
 window.editAbbrechen=()=>{ state.edit=null; render(); };
 window.editSpeichern=async()=>{
   const ed=state.edit; if(!ed) return;
-  if(!MANAGER_PINS.includes(String(ed.pin).trim())){toast("Falsche PIN – keine Berechtigung");return;}
+  const {data:pinOk,error:pinError}=await db.rpc("app_verify_manager_pin",{p_pin:String(ed.pin).trim(),p_standort:STANDORT});
+  if(pinError){toast("PIN-Prüfung fehlgeschlagen – bitte erneut versuchen");return;}
+  if(!pinOk){toast("Falsche PIN oder zu viele Versuche – keine Berechtigung");return;}
   const wert=Number(ed.wert);
   if(ed.wert===""||isNaN(wert)){toast("Ungültige Zahl");return;}
   const g=GERAETE.find(x=>x.id===ed.geraet);
